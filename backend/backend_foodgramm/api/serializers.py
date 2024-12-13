@@ -4,7 +4,6 @@ from rest_framework import serializers, validators
 from django.contrib.auth.hashers import make_password
 from django.shortcuts import get_object_or_404
 from rest_framework.validators import UniqueTogetherValidator
-from django.db import transaction
 
 from recipes.models import (
 	Recipe, Tag, Ingredient, User, validate_username, MAX_LENGTH_USERNAME,
@@ -106,23 +105,21 @@ class ResipesReadSerializer(serializers.ModelSerializer):
 			'text', 'cooking_time', 'is_favorited', 'is_in_shopping_cart'
 		)
 
-	def get_is_favorited(self, obj):
-		request = self.context.get('request')
+	def object_exists(self, model, request, recipe):
 		return (
 				request and request.user.is_authenticated
-				and Favorite.objects.filter(
-			user=request.user, recipe=obj
-		).exists()
+				and model.objects.filter(
+					user=request.user, recipe=recipe
+				).exists()
 		)
 
-	def get_is_in_shopping_cart(self, obj):
+	def get_is_favorited(self, recipe):
 		request = self.context.get('request')
-		return (
-				request and request.user.is_authenticated
-				and ShoppingCart.objects.filter(
-			user=request.user, recipe=obj
-		).exists()
-		)
+		return self.object_exists(Favorite, request, recipe)
+
+	def get_is_in_shopping_cart(self, recipe):
+		request = self.context.get('request')
+		return self.object_exists(ShoppingCart, request, recipe)
 
 
 class RecipeShortReadSerializer(serializers.ModelSerializer):
