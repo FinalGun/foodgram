@@ -1,12 +1,14 @@
+import os
+
+from dotenv import load_dotenv
 from django.db.models import Sum
 from django.shortcuts import HttpResponse, get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
 from djoser.views import UserViewSet
-
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.filters import SearchFilter
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
 
 from api.filters import RecipeFilter
@@ -21,6 +23,8 @@ from recipes.models import (
 	Recipe, ShoppingCart, Tag, User
 )
 from .utils import add_or_remove_favorite_or_shopping_cart
+
+load_dotenv()
 
 
 class IngredientsViewSet(viewsets.ModelViewSet):
@@ -52,31 +56,31 @@ class ResipesViewSet(viewsets.ModelViewSet):
 		return ResipeWriteSerializer
 
 	@action(
-		detail=False,
+		detail=True,
 		methods=['post', 'delete'],
 		permission_classes=(IsAuthenticated,),
 		serializer_class=FavoriteSerializer,
-		url_path=r'(?P<recipe_id>\d+)/favorite'
+		url_path=r'favorite'
 	)
-	def favorite(self, request, recipe_id):
+	def favorite(self, request, pk):
 		return add_or_remove_favorite_or_shopping_cart(
 			model=Favorite,
-			recipe_id=recipe_id,
+			recipe_id=pk,
 			serializer_class=FavoriteSerializer,
 			request=request,
 		)
 
 	@action(
-		detail=False,
+		detail=True,
 		methods=['post', 'delete'],
 		permission_classes=(IsAuthenticated,),
 		serializer_class=ShoppingCartSerializer,
-		url_path=r'(?P<recipe_id>\d+)/shopping_cart'
+		url_path=r'shopping_cart'
 	)
-	def shopping_cart(self, request, recipe_id):
+	def shopping_cart(self, request, pk):
 		return add_or_remove_favorite_or_shopping_cart(
 			model=ShoppingCart,
-			recipe_id=recipe_id,
+			recipe_id=pk,
 			serializer_class=ShoppingCartSerializer,
 			request=request,
 		)
@@ -107,12 +111,13 @@ class ResipesViewSet(viewsets.ModelViewSet):
 	@action(
 		detail=True,
 		methods=['get'],
-		url_path='get-link'
+		url_path=r'get-link',
+		permission_classes=[AllowAny, ]
 	)
 	def get_link(self, request, pk):
-		recipe = self.get_object()
+		dns = os.getenv('DNS')
 		data = {
-			'short-link': request.build_absolute_uri(f'/{recipe.short_url}')
+			'short-link': f'{dns}/recipes/{pk}'
 		}
 		return Response(data, status=status.HTTP_200_OK)
 
@@ -163,30 +168,30 @@ class CustomUserViewSet(UserViewSet):
 		return self.get_paginated_response(serializer.data)
 
 	@action(
-		detail=False,
+		detail=True,
 		methods=['delete', 'post'],
 		permission_classes=(IsAuthenticated,),
-		url_path=r'(?P<following_id>\d+)/subscribe'
+		url_path=r'subscribe'
 	)
-	def subscribe(self, request, following_id):
-		get_object_or_404(User, id=following_id)
+	def subscribe(self, request, pk):
+		get_object_or_404(User, id=pk)
 		if request.method == 'DELETE':
 			if not request.user.follower.filter(
-					following_id=following_id).exists():
+					following_id=pk).exists():
 				return Response(
 					{'error': 'Вы не подписаны на этого пользователя'},
 					status=status.HTTP_400_BAD_REQUEST
 				)
 			following = get_object_or_404(
 				Follow,
-				user=request.user, following_id=following_id
+				user=request.user, following_id=pk
 			)
 			following.delete()
 			return Response(status=status.HTTP_204_NO_CONTENT)
 		serializer = FollowWriteSerializer(
 			data={
 				'user': request.user.id,
-				'following': following_id
+				'following': pk
 			},
 			context={'request': request}
 		)
