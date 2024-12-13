@@ -22,6 +22,7 @@ DEBUG = os.getenv('DEBUG', False)
 ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', '').split(' ')
 # ALLOWED_HOSTS = []
 
+DNS = os.getenv('DNS')
 
 # Application definition
 

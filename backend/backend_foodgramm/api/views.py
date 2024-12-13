@@ -13,6 +13,7 @@ from rest_framework.response import Response
 
 from api.filters import RecipeFilter
 from api.permissions import AdminAuthorOrReadOnly
+from backend_foodgramm import settings
 from .serializers import (
 	AvatarSerializer, FavoriteSerializer, FollowReadSerializer,
 	FollowWriteSerializer, IngredientsSerializer, ResipeWriteSerializer,
@@ -115,14 +116,11 @@ class ResipesViewSet(viewsets.ModelViewSet):
 		permission_classes=[AllowAny, ]
 	)
 	def get_link(self, request, pk):
-		dns = os.getenv('DNS')
+
 		data = {
-			'short-link': f'foodgramfinal.ddns.net/recipes/{pk.id}'
+			'short-link': f'{settings.DNS}/recipes/{pk}'
 		}
 		return Response(data, status=status.HTTP_200_OK)
-
-
-
 
 
 class FollowWriteViewSet(viewsets.ModelViewSet):
