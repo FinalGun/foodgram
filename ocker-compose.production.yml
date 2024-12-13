@@ -12,7 +12,7 @@ services:
     volumes:
       - pg_data:/var/lib/postgresql/data
   backend:
-    build: ../backend/backend_foodgramm
+    image: finalgun/foodgram_backend
     env_file: .env
     depends_on:
       - db
@@ -22,7 +22,7 @@ services:
 
   frontend:
     container_name: foodgram-front
-    build: ../frontend
+    image: finalgun/foodgram_frontend
     depends_on:
       - backend
     command: cp -r /app/build/. /frontend_static/
@@ -31,13 +31,13 @@ services:
 
 
   nginx:
-    build: ../nginx
+    image: finalgun/foodgram_nginx
     env_file: .env
     depends_on:
       - backend
       - frontend
     ports:
-      - "80:80"
+      - "8000:80"
     volumes:
       - ../frontend/build:/usr/share/nginx/html/
       - ../docs/:/usr/share/nginx/html/api/docs/

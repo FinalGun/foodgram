@@ -2,6 +2,7 @@ import re
 
 from django.conf import settings
 from django.core.exceptions import ValidationError
+from django.core.validators import MinValueValidator
 from django.db import models
 from django.contrib.auth.models import AbstractUser
 
@@ -39,13 +40,13 @@ class User(AbstractUser):
 		'Почта', max_length=MAX_LENGTH_EMAIL, unique=True
 	)
 	first_name = models.CharField(
-		'Имя', max_length=MAX_LENGTH_FIRST_NAME, blank=True
+		'Имя', max_length=MAX_LENGTH_FIRST_NAME
 	)
 	last_name = models.CharField(
-		'Фамилия', max_length=MAX_LENGTH_LAST_NAME, blank=True
+		'Фамилия', max_length=MAX_LENGTH_LAST_NAME
 	)
 	avatar = models.ImageField(
-		verbose_name='Аватар', upload_to='media/users',
+		verbose_name='Аватар', upload_to='users',
 		blank=True,
 		null=True,
 	)
@@ -88,7 +89,7 @@ class Recipe(models.Model):
 	)
 	name = models.CharField(max_length=100)
 	image = models.ImageField(
-		upload_to='media/recipes/images',
+		upload_to='recipes',
 		verbose_name='Изображение',
 		blank=True,
 	)
@@ -123,7 +124,10 @@ class IngredientToRecipe(models.Model):
 		on_delete=models.CASCADE,
 		related_name='ingredient_to_recipes',
 	)
-	amount = models.FloatField()
+	amount = models.PositiveIntegerField(
+		verbose_name='Количество ингредиентов',
+		validators=(MinValueValidator(1),)
+	)
 
 
 class Follow(BaseModel):
