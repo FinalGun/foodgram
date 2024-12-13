@@ -139,6 +139,7 @@ class FollowWriteViewSet(viewsets.ModelViewSet):
 
 
 class CustomUserViewSet(UserViewSet):
+
 	def get_permissions(self):
 		if self.action == 'me':
 			return (IsAuthenticated(),)
