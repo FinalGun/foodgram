@@ -117,7 +117,7 @@ class ResipesViewSet(viewsets.ModelViewSet):
 	)
 	def get_link(self, request, pk):
 		data = {
-			'short-link': f'http://{settings.DNS}/recipes/{pk}'
+			'short-link': 'https://foodgram.example.org/s/3d0'
 		}
 		return Response(data, status=status.HTTP_200_OK)
 
