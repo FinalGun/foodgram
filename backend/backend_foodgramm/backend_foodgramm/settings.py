@@ -1,4 +1,5 @@
 import os
+
 from pathlib import Path
 from django.core.management.utils import get_random_secret_key
 from dotenv import load_dotenv
@@ -20,7 +21,6 @@ DEBUG = os.getenv('DEBUG', False)
 # DEBUG = True
 
 ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', '').split(' ')
-# ALLOWED_HOSTS = []
 
 DNS = os.getenv('DNS')
 
@@ -157,7 +157,7 @@ REST_FRAMEWORK = {
     ],
     'SEARCH_PARAM': "name",
     'DEFAULT_PAGINATION_CLASS': 'api.pagination.LimitPagination',
-    'PAGE_SIZE': 6,
+    'PAGE_SIZE': 10,
 }
 
 DJOSER = {
@@ -175,4 +175,4 @@ DJOSER = {
 }
 
 CURRENT_USER_IDENTIFIER = 'me'
-PAGE_SIZE = 6
+PAGE_SIZE = 10

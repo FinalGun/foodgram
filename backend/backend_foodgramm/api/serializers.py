@@ -1,6 +1,6 @@
 import base64
 from django.core.files.base import ContentFile
-from rest_framework import serializers, validators
+from rest_framework import serializers
 from django.contrib.auth.hashers import make_password
 from django.shortcuts import get_object_or_404
 from rest_framework.validators import UniqueTogetherValidator

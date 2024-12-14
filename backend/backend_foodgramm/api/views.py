@@ -1,6 +1,3 @@
-import os
-
-from dotenv import load_dotenv
 from django.db.models import Sum
 from django.shortcuts import HttpResponse, get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
@@ -25,23 +22,22 @@ from recipes.models import (
 )
 from .utils import add_or_remove_favorite_or_shopping_cart
 
-load_dotenv()
+
+class MethodsPaginationBaseMadel(viewsets.ModelViewSet):
+	pagination_class = None
+	http_method_names = ('get',)
 
 
-class IngredientsViewSet(viewsets.ModelViewSet):
+class IngredientsViewSet(MethodsPaginationBaseMadel):
 	queryset = Ingredient.objects.all()
 	serializer_class = IngredientsSerializer
-	http_method_names = ('get',)
 	filter_backends = (SearchFilter,)
 	search_fields = ('^name',)
-	pagination_class = None
 
 
-class TagsViewSet(viewsets.ModelViewSet):
+class TagsViewSet(MethodsPaginationBaseMadel):
 	queryset = Tag.objects.all()
 	serializer_class = TagSerializer
-	http_method_names = ('get',)
-	pagination_class = None
 
 
 class ResipesViewSet(viewsets.ModelViewSet):
@@ -100,10 +96,11 @@ class ResipesViewSet(viewsets.ModelViewSet):
 		).annotate(ingredient_amount=Sum('amount'))
 		shopping_list = ['Список покупок:\n']
 		for ingredient in ingredients:
-			name = ingredient['ingredient__name']
-			unit = ingredient['ingredient__measurement_unit']
-			amount = ingredient['ingredient_amount']
-			shopping_list.append(f'\n{name} - {amount}, {unit}')
+			shopping_list.append(
+				f'\n{ingredient["ingredient__name"]}'
+				f' - {ingredient["ingredient_amount"]},'
+				f' {ingredient["ingredient__measurement_unit"]}'
+			)
 		response = HttpResponse(shopping_list, content_type='text/plain')
 		response['Content-Disposition'] = \
 			'attachment; filename="shopping_cart.txt"'
@@ -117,7 +114,7 @@ class ResipesViewSet(viewsets.ModelViewSet):
 	)
 	def get_link(self, request, pk):
 		data = {
-			'short-link': 'https://foodgram.example.org/s/3d0'
+			'short-link': f'{settings.DNS}/s/{pk}'
 		}
 		return Response(data, status=status.HTTP_200_OK)
 
