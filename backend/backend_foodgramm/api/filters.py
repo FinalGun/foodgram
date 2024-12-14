@@ -6,8 +6,8 @@ from recipes.models import Ingredient, Recipe, Tag
 class RecipeFilter(FilterSet):
     tags = filters.ModelMultipleChoiceFilter(
         queryset=Tag.objects.all(),
-        field_name='tags__id',
-        to_field_name='id',
+        field_name='tags__slug',
+        to_field_name='slug',
     )
     is_favorited = filters.BooleanFilter(
         method='get_is_favorited'
