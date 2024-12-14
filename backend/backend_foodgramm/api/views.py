@@ -170,25 +170,25 @@ class CustomUserViewSet(UserViewSet):
 		permission_classes=(IsAuthenticated,),
 		url_path=r'subscribe'
 	)
-	def subscribe(self, request, pk):
-		get_object_or_404(User, id=pk)
+	def subscribe(self, request, id):
+		get_object_or_404(User, id=id)
 		if request.method == 'DELETE':
 			if not request.user.follower.filter(
-					following_id=pk).exists():
+					following_id=id).exists():
 				return Response(
 					{'error': 'Вы не подписаны на этого пользователя'},
 					status=status.HTTP_400_BAD_REQUEST
 				)
 			following = get_object_or_404(
 				Follow,
-				user=request.user, following_id=pk
+				user=request.user, following_id=id
 			)
 			following.delete()
 			return Response(status=status.HTTP_204_NO_CONTENT)
 		serializer = FollowWriteSerializer(
 			data={
 				'user': request.user.id,
-				'following': pk
+				'following': id
 			},
 			context={'request': request}
 		)
