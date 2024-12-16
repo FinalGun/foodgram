@@ -54,17 +54,18 @@ class ResipesViewSet(viewsets.ModelViewSet):
     def add_or_remove_favorite_or_shopping_cart(model, recipe_id, request):
         recipe = get_object_or_404(Recipe, pk=recipe_id)
         user = request.user
+        recipe_ = model.objects.filter(user=user, recipe=recipe)
         if request.method == 'POST':
-            if model.objects.filter(user=user, recipe=recipe).exists():
+            if recipe_.exists():
                 raise ValidationError('Рецепт уже добавлен в список')
             model.objects.create(user=user, recipe=recipe)
             return Response(
                 RecipeShortReadSerializer(recipe).data,
                 status=status.HTTP_201_CREATED
             )
-        if not model.objects.filter(user=user, recipe=recipe).exists():
+        if not recipe_.exists():
             raise ValidationError('Рецепт отсутствует в списке')
-        model.objects.filter(user=user, recipe=recipe).delete()
+        recipe_.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
     @action(
