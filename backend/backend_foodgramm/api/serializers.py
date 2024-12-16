@@ -16,9 +16,10 @@ class UserSerializer(DjoserUserSerializer):
 
     def get_is_subscribed(self, following):
         request = self.context.get('request')
-        return request.user.is_authenticated and Follow.objects.filter(
-                user=request.user, following=following
-            ).exists()
+        return (request.user.is_authenticated
+                and Follow.objects.filter(
+                    user=request.user, following=following
+                ).exists())
 
     class Meta:
         model = User
@@ -66,7 +67,7 @@ class IngredientWriteSerializer(serializers.ModelSerializer):
         queryset=Ingredient.objects.all()
     )
     amount = serializers.IntegerField(
-        validators=[MinValueValidator(MIN_VALUE_AMOUNT),]
+        validators=[MinValueValidator(MIN_VALUE_AMOUNT)]
     )
 
     class Meta:
@@ -142,7 +143,7 @@ class ResipeWriteSerializer(serializers.ModelSerializer):
     )
     image = Base64imageField()
     cooking_time = serializers.IntegerField(
-        validators=[MinValueValidator(MIN_VALUE_COOKING_TIME),]
+        validators=[MinValueValidator(MIN_VALUE_COOKING_TIME)]
     )
 
     class Meta:
