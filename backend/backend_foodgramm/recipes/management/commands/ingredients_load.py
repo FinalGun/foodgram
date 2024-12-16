@@ -3,6 +3,7 @@ from csv import DictReader
 
 from django.conf import settings
 from django.core.management.base import BaseCommand
+
 from recipes.models import Ingredient
 
 
@@ -23,4 +24,4 @@ class Command(BaseCommand):
                 )
             ]
             Ingredient.objects.bulk_create(ingredients, ignore_conflicts=True)
-            print('Данные загружены')
+            print('Продукты загружены')
