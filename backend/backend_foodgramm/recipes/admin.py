@@ -32,8 +32,34 @@ class CookingTimeFilter(admin.SimpleListFilter):
 
 @admin.register(User)
 class UserAdmin(admin.ModelAdmin):
-    list_display = ('id', 'username', 'email', 'last_name')
+    list_display = (
+        'id', 'username', 'full_name', 'email', 'avatar_display',
+        'recipes_count', 'subscriptions_count', 'subscribers_count'
+    )
     search_fields = ('id', 'username', 'email', 'last_name')
+
+    @admin.display(description='Имя Фамилия')
+    def full_name(self, user):
+        return f'{user.first_name} {user.last_name}'
+
+    @admin.display(description='Аватар')
+    def avatar_display(self, user):
+        return mark_safe(
+            f'<img src="{user.avatar.url}" '
+            f'style="max-width: 75px; max-height: 55px;" />'
+        )
+
+    @admin.display(description='Рецепты')
+    def recipes_count(self, user):
+        return user.recipes.count()
+
+    @admin.display(description='Подписки')
+    def subscriptions_count(self, user):
+        return user.authors.count()
+
+    @admin.display(description='Подписчики')
+    def subscribers_count(self, user):
+        return user.follow.count()
 
 
 class RecipeIngredientAdmin(admin.StackedInline):
@@ -57,10 +83,9 @@ class RecipeAdmin(admin.ModelAdmin):
     search_fields = ('name', 'author', 'tags',)
     inlines = (RecipeIngredientAdmin,)
 
-    @display(description='Количество в избранном')
+    @display(description='В избранном')
     def in_favorites(self, recipe):
         return recipe.favorites.count()
-
 
     @display(description='Продукты')
     def get_ingredients(self, recipe):
@@ -77,7 +102,7 @@ class RecipeAdmin(admin.ModelAdmin):
     @display(description='Теги')
     def get_tags(self, recipe):
         return mark_safe('<br>'.join(f'{tag}' for tag in
-                         recipe.tags.filter(recipes=recipe)))
+                         recipe.tags.all()))
 
 
 @admin.register(Ingredient)
@@ -88,7 +113,7 @@ class IngredientAdmin(admin.ModelAdmin):
     search_fields = ('name', 'measurement_unit')
     list_filter = ('measurement_unit',)
 
-    @display(description='Количество использований')
+    @display(description='Использований')
     def in_recipes(self, ingredient):
         return ingredient.recipes.count()
 
@@ -103,7 +128,7 @@ class TagAdmin(admin.ModelAdmin):
     list_display = ('id', 'name', 'slug', 'in_recipes')
     search_fields = ('name', 'slug')
 
-    @display(description='Количество использований')
+    @display(description='Использований')
     def in_recipes(self, tag):
         return tag.recipes.count()
 
