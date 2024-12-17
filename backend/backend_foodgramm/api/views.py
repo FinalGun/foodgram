@@ -189,8 +189,6 @@ class FoodGramUserViewSet(UserViewSet):
             ).data, status=status.HTTP_201_CREATED
         )
 
-
-
     @action(
         detail=False,
         methods=['delete', 'put'],
