@@ -1,3 +1,9 @@
+![size repo](https://img.shields.io/github/repo-size/FinalGun/foodgram)
+![branch check runs](https://img.shields.io/github/check-runs/FinalGun/foodgram/main)
+![total commits](https://img.shields.io/github/commit-activity/t/FinalGun/foodgram)
+![last commit](https://img.shields.io/github/last-commit/FinalGun/foodgram)
+![last commit](https://github.com/FinalGun/foodgram/actions/workflows/main.yml/badge.svg)
+
 ## Foodgram
 
 ### Технологии:
