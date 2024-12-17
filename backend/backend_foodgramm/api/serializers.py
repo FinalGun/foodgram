@@ -194,11 +194,11 @@ class ResipeWriteSerializer(serializers.ModelSerializer):
     @staticmethod
     def create_ingredients(recipe, ingredients):
         RecipeIngredient.objects.bulk_create(
-                RecipeIngredient(
-                    recipe=recipe,
-                    ingredient=ingredient['id'],
-                    amount=ingredient.get('amount'),
-                ) for ingredient in ingredients
+            RecipeIngredient(
+                recipe=recipe,
+                ingredient=ingredient['id'],
+                amount=ingredient.get('amount'),
+            ) for ingredient in ingredients
         )
 
     def update(self, instance, validated_data):
