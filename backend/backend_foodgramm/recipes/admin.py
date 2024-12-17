@@ -2,8 +2,11 @@ from django.contrib import admin
 from django.contrib.admin import display
 from django.utils.safestring import mark_safe
 
-from .models import (Favorite, Ingredient, IngredientToRecipe, Recipe,
+from .models import (Favorite, Ingredient, RecipeIngredient, Recipe,
                      ShoppingCart, Tag, User)
+
+COOKING_TIME_UPPER = 60
+COOKING_TIME_LOWER = 30
 
 
 class CookingTimeFilter(admin.SimpleListFilter):
@@ -12,18 +15,19 @@ class CookingTimeFilter(admin.SimpleListFilter):
 
     def lookups(self, request, model_admin):
         return [
-            ('short', 'Меньше 30 минут'),
-            ('medium', 'Между 30 и 60 минутами'),
-            ('long', 'Дольше часа'),
+            (f'0:{COOKING_TIME_LOWER}', f'Меньше {COOKING_TIME_LOWER} минут'),
+            (f'{COOKING_TIME_LOWER}:{COOKING_TIME_UPPER}',
+             f'Между {COOKING_TIME_LOWER} и {COOKING_TIME_UPPER} минутами'),
+            (f'{COOKING_TIME_UPPER}:{10**10}',
+             f'Дольше {COOKING_TIME_UPPER} минут'),
         ]
 
     def queryset(self, request, queryset):
-        if self.value() == 'short':
-            return queryset.filter(cooking_time__lt=30)
-        if self.value() == 'medium':
-            return queryset.filter(cooking_time__gte=30, cooking_time__lt=60)
-        if self.value() == 'long':
-            return queryset.filter(cooking_time__gte=60)
+        value = self.value()
+        if not value:
+            return queryset
+        lower, upper = value.split(':')
+        return queryset.filter(cooking_time__range=(int(lower), int(upper)))
 
 
 @admin.register(User)
@@ -33,7 +37,7 @@ class UserAdmin(admin.ModelAdmin):
 
 
 class RecipeIngredientAdmin(admin.StackedInline):
-    model = IngredientToRecipe
+    model = RecipeIngredient
     fields = ('recipe', 'ingredient', 'amount')
 
 
@@ -57,12 +61,13 @@ class RecipeAdmin(admin.ModelAdmin):
     def in_favorites(self, recipe):
         return recipe.favorites.count()
 
+
     @display(description='Продукты')
     def get_ingredients(self, recipe):
         return mark_safe('<br>'.join(
             f'{recipe_ingredient.ingredient} - {recipe_ingredient.amount}'
             f'{recipe_ingredient.ingredient.measurement_unit}'
-            for recipe_ingredient in recipe.ingredient_to_recipes.all()
+            for recipe_ingredient in recipe.recipe_ingredient.all()
         ))
 
     @display(description='Изображение')
@@ -77,7 +82,9 @@ class RecipeAdmin(admin.ModelAdmin):
 
 @admin.register(Ingredient)
 class IngredientAdmin(admin.ModelAdmin):
-    list_display = ('pk', 'name', 'measurement_unit', 'in_recipes')
+    list_display = (
+        'pk', 'name', 'measurement_unit', 'in_recipes'
+    )
     search_fields = ('name', 'measurement_unit')
     list_filter = ('measurement_unit',)
 
@@ -86,8 +93,8 @@ class IngredientAdmin(admin.ModelAdmin):
         return ingredient.recipes.count()
 
 
-@admin.register(IngredientToRecipe)
-class IngredientToRecipeAdmin(admin.ModelAdmin):
+@admin.register(RecipeIngredient)
+class RecipeIngredientAdmin(admin.ModelAdmin):
     list_display = ('id', 'recipe', 'ingredient', 'amount')
 
 

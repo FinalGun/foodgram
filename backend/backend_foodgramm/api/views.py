@@ -2,40 +2,43 @@ from django.db.models import Sum
 from django.http import FileResponse
 from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
+from django.urls import reverse
 from djoser.views import UserViewSet
 from rest_framework import serializers, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.filters import SearchFilter
-from rest_framework.permissions import (AllowAny, IsAuthenticated,
-                                        IsAuthenticatedOrReadOnly)
+from rest_framework.permissions import (
+    AllowAny, IsAuthenticated, IsAuthenticatedOrReadOnly
+)
 from rest_framework.response import Response
 from rest_framework.serializers import ValidationError
 
 from api.filters import RecipeFilter
 from api.permissions import AuthorOrReadOnly
 from api.render import render_shopping_list
-from recipes.models import (Favorite, Follow, Ingredient, IngredientToRecipe,
-                            Recipe, ShoppingCart, Tag, User)
-from .serializers import (AvatarSerializer, FollowReadSerializer,
-                          IngredientsSerializer, RecipeShortReadSerializer,
-                          ResipeWriteSerializer, ResipesReadSerializer,
-                          TagSerializer)
+from recipes.models import (
+    Favorite, Follow, Ingredient, RecipeIngredient,
+    Recipe, ShoppingCart, Tag, User
+)
+from .serializers import (
+    AvatarSerializer, FollowReadSerializer, IngredientsSerializer,
+    RecipeShortReadSerializer, ResipeWriteSerializer, ResipesReadSerializer,
+    TagSerializer
+)
 
 
-class PaginationReadBaseModel(viewsets.ReadOnlyModelViewSet):
-    pagination_class = None
-
-
-class IngredientsViewSet(PaginationReadBaseModel):
+class IngredientsViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = Ingredient.objects.all()
     serializer_class = IngredientsSerializer
     filter_backends = (SearchFilter,)
     search_fields = ('^name',)
+    pagination_class = None
 
 
-class TagsViewSet(PaginationReadBaseModel):
+class TagsViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = Tag.objects.all()
     serializer_class = TagSerializer
+    pagination_class = None
 
 
 class ResipesViewSet(viewsets.ModelViewSet):
@@ -54,18 +57,17 @@ class ResipesViewSet(viewsets.ModelViewSet):
     def add_or_remove_favorite_or_shopping_cart(model, recipe_id, request):
         recipe = get_object_or_404(Recipe, pk=recipe_id)
         user = request.user
-        recipe_ = model.objects.filter(user=user, recipe=recipe)
         if request.method == 'POST':
-            if recipe_.exists():
+            _, created = model.objects.get_or_create(user=user, recipe=recipe)
+            if not created:
                 raise ValidationError('Рецепт уже добавлен в список')
-            model.objects.create(user=user, recipe=recipe)
             return Response(
                 RecipeShortReadSerializer(recipe).data,
                 status=status.HTTP_201_CREATED
             )
-        if not recipe_.exists():
+        if not model.objects.filter(user=user, recipe=recipe).exists():
             raise ValidationError('Рецепт отсутствует в списке')
-        recipe_.delete()
+        get_object_or_404(model, user=user, recipe=recipe).delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
     @action(
@@ -103,12 +105,12 @@ class ResipesViewSet(viewsets.ModelViewSet):
     def download_shopping_cart(self, request):
         return FileResponse(
             render_shopping_list(
-                IngredientToRecipe.objects.filter(
-                    recipe__shopping_carts__user=request.user
+                RecipeIngredient.objects.filter(
+                    recipe__shoppingcarts__user=request.user
                 ).values('ingredient__name', 'ingredient__measurement_unit')
                 .annotate(ingredient_amount=Sum('amount')).order_by(
-                    'ingredient'),
-                request.user.shopping_carts.all()
+                    'ingredient__name'),
+                request.user.shoppingcarts.all()
             ),
             content_type='text/plain',
             filename='shopping_cart.txt'
@@ -123,9 +125,11 @@ class ResipesViewSet(viewsets.ModelViewSet):
         ],
     )
     def get_link(self, request, pk):
+        get_object_or_404(Recipe, pk=pk)
         return Response(
-            {'short-link': f'{request.META["DNS"]}'
-                           f'/s/{get_object_or_404(Recipe, pk=pk).id}'},
+            {'short-link': request.build_absolute_uri(
+                reverse('recipe_short', args=(pk,))
+            )},
             status=status.HTTP_200_OK
         )
 
@@ -145,7 +149,7 @@ class FoodGramUserViewSet(UserViewSet):
     )
     def subscriptions(self, request):
         pages = self.paginate_queryset(
-            User.objects.filter(follow_followers__user=self.request.user)
+            User.objects.filter(authors__user=self.request.user)
         )
         serializer = FollowReadSerializer(
             pages,
@@ -163,36 +167,29 @@ class FoodGramUserViewSet(UserViewSet):
     def subscribe(self, request, id):
         following = get_object_or_404(User, id=id)
         user = request.user
-        if following == user:
-            raise serializers.ValidationError(
-                'Вы не можете подписаться на себя'
-            )
         if request.method == 'DELETE':
-            if not user.follow_users.filter(
-                    following_id=following.id
-            ).exists():
-                raise serializers.ValidationError(
-                    'Вы не подписаны на этого пользователя'
-                )
             get_object_or_404(
                 Follow,
                 user=user,
                 following_id=following.id
             ).delete()
             return Response(status=status.HTTP_204_NO_CONTENT)
-        if user.follow_users.filter(following=following):
+        if following == user:
+            raise serializers.ValidationError(
+                'Вы не можете подписаться на себя'
+            )
+        _, created = Follow.objects.get_or_create(
+            user=user, following=following
+        )
+        if not created:
             raise ValidationError('Вы уже подписаны на этого пользователя')
-        Follow.objects.create(user=user, following=following)
-        serializer = FollowReadSerializer(
-            following,
-            data=request.data,
-            context={'request': request},
-        )
-        serializer.is_valid()
         return Response(
-            serializer.data,
-            status=status.HTTP_201_CREATED
+            FollowReadSerializer(
+                following, context={'request': request, }
+            ).data, status=status.HTTP_201_CREATED
         )
+
+
 
     @action(
         detail=False,
@@ -203,16 +200,12 @@ class FoodGramUserViewSet(UserViewSet):
     )
     def avatar(self, request):
         user = request.user
-        if request.method == 'PUT':
-            serializer = self.get_serializer(
-                user, data=request.data, context={'request': request}
-            )
-            if 'avatar' not in request.data:
-                raise serializers.ValidationError(
-                    'Отсутствует поле "avatar"'
-                )
-            serializer.is_valid(raise_exception=True)
-            serializer.save()
-            return Response(serializer.data, status=status.HTTP_200_OK)
-        user.avatar.delete()
-        return Response(status=status.HTTP_204_NO_CONTENT)
+        if request.method == 'DELETE':
+            user.avatar.delete()
+            return Response(status=status.HTTP_204_NO_CONTENT)
+        serializer = self.get_serializer(
+            user, data=request.data, context={'request': request}
+        )
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data, status=status.HTTP_200_OK)

@@ -1,19 +1,21 @@
 from datetime import date
 
+workpiece_ingredients = '\n{index}.{name} - {amount}, {measurement_unit}'
+workpiece_recipes = '\n{index}.{name}'
+
 
 def render_shopping_list(ingredients, recipes):
-    return ''.join([
+    return [
         f'Список покупок. {date.today()}',
         '\nПродукты:',
-        ''.join([(
-            f'\n{list(ingredients).index(ingredient) + 1}'
-            f'.{ingredient["ingredient__name"].capitalize()}'
-            f' - {ingredient["ingredient_amount"]},'
-            f' {ingredient["ingredient__measurement_unit"]}'
-        ) for ingredient in ingredients]),
+        ''.join(workpiece_ingredients.format(
+            index=index,
+            name=ingredient['ingredient__name'].capitalize(),
+            amount=ingredient['ingredient_amount'],
+            measurement_unit=ingredient['ingredient__measurement_unit']
+        ) for index, ingredient in enumerate(ingredients, start=1)),
         '\nРецепты:',
-        ''.join([
-            f'\n{list(recipes).index(recipe) + 1}'
-            f'.{recipe.recipe.name.capitalize()}'
-            for recipe in recipes])
-    ])
+        ''.join(workpiece_recipes.format(
+            index=index, name=recipe.recipe.name
+        ) for index, recipe in enumerate(recipes, start=1))
+    ]
