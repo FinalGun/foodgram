@@ -74,6 +74,8 @@ class UserAdmin(admin.ModelAdmin):
 
     @admin.display(description='Аватар')
     def avatar_display(self, user):
+        if not user.avatar:
+            return 'Нет аватара'
         return mark_safe(
             f'<img src="{user.avatar.url}" '
             f'style="max-width: 75px; max-height: 55px;" />'
