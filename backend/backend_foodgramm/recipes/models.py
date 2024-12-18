@@ -145,6 +145,9 @@ class Recipe(models.Model):
         verbose_name_plural = 'Рецепты'
         ordering = ('-created_at',)
 
+    def __str__(self):
+        return self.name
+
 
 class RecipeIngredient(models.Model):
     recipe = models.ForeignKey(

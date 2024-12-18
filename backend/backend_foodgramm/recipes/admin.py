@@ -3,13 +3,37 @@ from django.contrib.auth.models import Group
 from django.contrib.admin import display
 from django.utils.safestring import mark_safe
 
-from .models import (Favorite, Ingredient, RecipeIngredient, Recipe,
-                     ShoppingCart, Tag, User)
+from .models import (
+    Favorite, Ingredient, RecipeIngredient, Recipe,
+    ShoppingCart, Tag, User
+)
 
 COOKING_TIME_UPPER = 60
 COOKING_TIME_LOWER = 30
 
 admin.site.unregister(Group)
+
+
+class UserFilter(admin.SimpleListFilter):
+    title = 'Фильтрация рецептам, подпискам и подписчикам'
+    parameter_name = 'user'
+
+    def lookups(self, request, model_admin):
+        return [
+            ('recipes', 'Есть рецепты'),
+            ('authors', 'Есть подписчики'),
+            ('follows', 'Есть подписки'),
+        ]
+
+    def queryset(self, request, queryset):
+        value = self.value()
+        if not value:
+            return queryset
+        if value == 'recipes':
+            return queryset.filter(recipes__gt=0)
+        if value == 'authors':
+            return queryset.filter(authors__gt=0)
+        return queryset.filter(follows__gt=0)
 
 
 class CookingTimeFilter(admin.SimpleListFilter):
@@ -41,7 +65,7 @@ class UserAdmin(admin.ModelAdmin):
     )
     search_fields = ('username', 'email', 'first_name', 'last_name')
     list_filter = (
-        'is_staff', 'is_active'
+        'is_staff', 'is_active', UserFilter
     )
 
     @admin.display(description='Имя Фамилия')
@@ -61,11 +85,11 @@ class UserAdmin(admin.ModelAdmin):
 
     @admin.display(description='Подписки')
     def subscriptions_count(self, user):
-        return user.authors.count()
+        return user.follows.count()
 
     @admin.display(description='Подписчики')
     def subscribers_count(self, user):
-        return user.follows.count()
+        return user.authors.count()
 
 
 class RecipeIngredientAdmin(admin.StackedInline):
