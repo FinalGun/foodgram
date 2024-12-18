@@ -30,7 +30,7 @@ class UserFilter(admin.SimpleListFilter):
         if not value:
             return queryset
         if value == 'recipes':
-            return queryset.filter(recipes__gt=0)
+            return queryset.filter(recipes__gt=0).distinct()
         if value == 'authors':
             return queryset.filter(authors__gt=0)
         return queryset.filter(follows__gt=0)
