@@ -7,7 +7,7 @@ from djoser.serializers import UserSerializer as DjoserUserSerializer
 from rest_framework import serializers
 
 from recipes.models import (
-    Favorite, Follow, Ingredient, RecipeIngredient, MIN_VALUE_AMOUNT,
+    Favorite, Follow, Ingredient, RecipeIngredient, MIN_AMOUNT,
     MIN_COOKING_TIME, Recipe, ShoppingCart, Tag, User
 )
 
@@ -68,7 +68,7 @@ class IngredientWriteSerializer(serializers.ModelSerializer):
         queryset=Ingredient.objects.all()
     )
     amount = serializers.IntegerField(
-        validators=[MinValueValidator(MIN_VALUE_AMOUNT)]
+        validators=[MinValueValidator(MIN_AMOUNT)]
     )
 
     class Meta:
@@ -85,7 +85,7 @@ class TagSerializer(serializers.ModelSerializer):
 class ResipesReadSerializer(serializers.ModelSerializer):
     author = UserSerializer()
     ingredients = IngredientToRecipeReadSerializer(
-        many=True, read_only=True, source='recipe_ingredient'
+        many=True, read_only=True, source='recipe_ingredients'
     )
     tags = TagSerializer(many=True)
     is_favorited = serializers.SerializerMethodField()

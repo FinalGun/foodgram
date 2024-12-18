@@ -57,18 +57,16 @@ class ResipesViewSet(viewsets.ModelViewSet):
     def add_or_remove_favorite_or_shopping_cart(model, recipe_id, request):
         recipe = get_object_or_404(Recipe, pk=recipe_id)
         user = request.user
-        if request.method == 'POST':
-            _, created = model.objects.get_or_create(user=user, recipe=recipe)
-            if not created:
-                raise ValidationError('Рецепт уже добавлен в список')
-            return Response(
-                RecipeShortReadSerializer(recipe).data,
-                status=status.HTTP_201_CREATED
-            )
-        if not model.objects.filter(user=user, recipe=recipe).exists():
-            raise ValidationError('Рецепт отсутствует в списке')
-        get_object_or_404(model, user=user, recipe=recipe).delete()
-        return Response(status=status.HTTP_204_NO_CONTENT)
+        if request.method == 'DELETE':
+            get_object_or_404(model, user=user, recipe=recipe).delete()
+            return Response(status=status.HTTP_204_NO_CONTENT)
+        _, created = model.objects.get_or_create(user=user, recipe=recipe)
+        if not created:
+            raise ValidationError('Рецепт уже добавлен в список')
+        return Response(
+            RecipeShortReadSerializer(recipe).data,
+            status=status.HTTP_201_CREATED
+        )
 
     @action(
         detail=True,
@@ -125,7 +123,8 @@ class ResipesViewSet(viewsets.ModelViewSet):
         ],
     )
     def get_link(self, request, pk):
-        get_object_or_404(Recipe, pk=pk)
+        if not Recipe.objects.filter(pk=pk).exists():
+            raise ValidationError(f'Рецепт с id={pk} не существует')
         return Response(
             {'short-link': request.build_absolute_uri(
                 reverse('recipe_short', args=(pk,))
@@ -182,7 +181,9 @@ class FoodGramUserViewSet(UserViewSet):
             user=user, following=following
         )
         if not created:
-            raise ValidationError('Вы уже подписаны на этого пользователя')
+            raise ValidationError(
+                f'Вы уже подписаны на пользователя {following}'
+            )
         return Response(
             FollowReadSerializer(
                 following, context={'request': request, }

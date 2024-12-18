@@ -17,7 +17,7 @@ class Command(BaseCommand):
         ) as file:
             ingredients = [
                 Ingredient(
-                    name=row['name'], measurement_unit=row['measurement_unit']
+                    **row
                 )
                 for row in DictReader(
                     file, fieldnames=('name', 'measurement_unit',)

@@ -1,4 +1,5 @@
 from django.contrib import admin
+from django.contrib.auth.models import Group
 from django.contrib.admin import display
 from django.utils.safestring import mark_safe
 
@@ -7,6 +8,8 @@ from .models import (Favorite, Ingredient, RecipeIngredient, Recipe,
 
 COOKING_TIME_UPPER = 60
 COOKING_TIME_LOWER = 30
+
+admin.site.unregister(Group)
 
 
 class CookingTimeFilter(admin.SimpleListFilter):
@@ -36,7 +39,10 @@ class UserAdmin(admin.ModelAdmin):
         'id', 'username', 'full_name', 'email', 'avatar_display',
         'recipes_count', 'subscriptions_count', 'subscribers_count'
     )
-    search_fields = ('id', 'username', 'email', 'last_name')
+    search_fields = ('username', 'email', 'first_name', 'last_name')
+    list_filter = (
+        'is_staff', 'is_active'
+    )
 
     @admin.display(description='Имя Фамилия')
     def full_name(self, user):
@@ -59,7 +65,7 @@ class UserAdmin(admin.ModelAdmin):
 
     @admin.display(description='Подписчики')
     def subscribers_count(self, user):
-        return user.follow.count()
+        return user.follows.count()
 
 
 class RecipeIngredientAdmin(admin.StackedInline):
@@ -73,15 +79,19 @@ class RecipeAdmin(admin.ModelAdmin):
         'id',
         'name',
         'cooking_time',
-        'author',
+        'get_author',
         'get_tags',
         'in_favorites',
         'get_ingredients',
         'get_image'
     )
     list_filter = ('author', 'tags', CookingTimeFilter)
-    search_fields = ('name', 'author', 'tags',)
+    search_fields = ('name', 'get_author', 'tags',)
     inlines = (RecipeIngredientAdmin,)
+
+    @display(description='Автор')
+    def get_author(self, recipe):
+        return recipe.author.username
 
     @display(description='В избранном')
     def in_favorites(self, recipe):
@@ -92,7 +102,7 @@ class RecipeAdmin(admin.ModelAdmin):
         return mark_safe('<br>'.join(
             f'{recipe_ingredient.ingredient} - {recipe_ingredient.amount}'
             f'{recipe_ingredient.ingredient.measurement_unit}'
-            for recipe_ingredient in recipe.recipe_ingredient.all()
+            for recipe_ingredient in recipe.recipe_ingredients.all()
         ))
 
     @display(description='Изображение')

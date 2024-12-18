@@ -14,7 +14,7 @@ MAX_LENGTH_INGREDIENT_NAME = 128
 MAX_LENGTH_TEXT = 200
 MAX_LENGTH_TAG_NAME = 32
 MAX_LENGTH_SLUG = 32
-MIN_VALUE_AMOUNT = 1
+MIN_AMOUNT = 1
 MIN_COOKING_TIME = 1
 MAX_LENGTH_MEASUREMENT_UNIT = 64
 USERNAME_VALIDATION_REGEX = r'[\w.@+-]'
@@ -25,7 +25,7 @@ def validate_username(username):
     if forbidden_characters:
         raise ValidationError(
             'Имя пользователя содержит недопустимые символы: {}'.format(
-                set(forbidden_characters)
+               *(symbol for symbol in (set(forbidden_characters)))
             )
         )
 
@@ -101,7 +101,7 @@ class Ingredient(models.Model):
         )
 
     def __str__(self):
-        return self.name
+        return f'{self.name} {self.measurement_unit}'
 
 
 class Recipe(models.Model):
@@ -132,14 +132,18 @@ class Recipe(models.Model):
         related_name='recipes',
     )
     cooking_time = models.PositiveIntegerField(
-        verbose_name='Время приготовления в минутах',
+        verbose_name='Время (мин)',
         validators=(MinValueValidator(MIN_COOKING_TIME),)
+    )
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+        verbose_name='Время создания рецепта'
     )
 
     class Meta:
         verbose_name = 'Рецепт'
         verbose_name_plural = 'Рецепты'
-        ordering = ('name',)
+        ordering = ('-created_at',)
 
 
 class RecipeIngredient(models.Model):
@@ -147,17 +151,17 @@ class RecipeIngredient(models.Model):
         Recipe,
         on_delete=models.CASCADE,
         verbose_name='Рецепт',
-        related_name='recipe_ingredient',
+        related_name='recipe_ingredients',
     )
     ingredient = models.ForeignKey(
         Ingredient,
         on_delete=models.CASCADE,
         verbose_name='Продукт',
-        related_name='recipe_ingredient',
+        related_name='recipe_ingredients',
     )
     amount = models.PositiveIntegerField(
         verbose_name='Мера',
-        validators=(MinValueValidator(MIN_VALUE_AMOUNT),),
+        validators=(MinValueValidator(MIN_AMOUNT),),
     )
 
     class Meta:
@@ -168,7 +172,7 @@ class RecipeIngredient(models.Model):
 
 class Follow(models.Model):
     user = models.ForeignKey(
-        User, on_delete=models.CASCADE, related_name='follow'
+        User, on_delete=models.CASCADE, related_name='follows'
     )
     following = models.ForeignKey(
         User, on_delete=models.CASCADE, related_name='authors'
