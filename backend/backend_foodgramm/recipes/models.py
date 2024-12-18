@@ -24,9 +24,9 @@ def validate_username(username):
     forbidden_characters = re.sub(USERNAME_VALIDATION_REGEX, '', username)
     if forbidden_characters:
         raise ValidationError(
-            'Имя пользователя содержит недопустимые символы: {}'.format(
-               *(symbol for symbol in (set(forbidden_characters)))
-            )
+            'Имя пользователя содержит недопустимые символы: {}'.format(*(
+                symbol for symbol in (set(forbidden_characters))
+            ))
         )
 
     return username
