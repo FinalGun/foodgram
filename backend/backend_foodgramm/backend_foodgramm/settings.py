@@ -175,5 +175,4 @@ DJOSER = {
     }
 }
 
-CURRENT_USER_IDENTIFIER = 'me'
 PAGE_SIZE = 6

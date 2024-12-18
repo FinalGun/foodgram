@@ -24,9 +24,8 @@ def validate_username(username):
     forbidden_characters = re.sub(USERNAME_VALIDATION_REGEX, '', username)
     if forbidden_characters:
         raise ValidationError(
-            'Имя пользователя содержит недопустимые символы: {}'.format(*(
-                symbol for symbol in (set(forbidden_characters))
-            ))
+            'Имя пользователя содержит недопустимые символы: {}'.format(
+                ''.join(set(forbidden_characters)))
         )
 
     return username
@@ -111,7 +110,10 @@ class Recipe(models.Model):
         verbose_name='Автор',
         related_name='recipes',
     )
-    name = models.CharField(max_length=MAX_LENGTH_INGREDIENT_NAME)
+    name = models.CharField(
+        max_length=MAX_LENGTH_INGREDIENT_NAME,
+        verbose_name='Название'
+    )
     image = models.ImageField(
         upload_to='recipes',
         verbose_name='Изображение',

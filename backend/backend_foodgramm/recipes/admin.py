@@ -14,26 +14,36 @@ COOKING_TIME_LOWER = 30
 admin.site.unregister(Group)
 
 
-class UserFilter(admin.SimpleListFilter):
-    title = 'Фильтрация рецептам, подпискам и подписчикам'
-    parameter_name = 'user'
+class BaseUserFilter(admin.SimpleListFilter):
+    pass
 
     def lookups(self, request, model_admin):
-        return [
-            ('recipes', 'Есть рецепты'),
-            ('authors', 'Есть подписчики'),
-            ('follows', 'Есть подписки'),
-        ]
+        return [('Нет', 'Нет'), ('Да', 'Да')]
 
     def queryset(self, request, queryset):
-        value = self.value()
-        if not value:
-            return queryset
-        if value == 'recipes':
-            return queryset.filter(recipes__gt=0).distinct()
-        if value == 'authors':
-            return queryset.filter(authors__gt=0)
-        return queryset.filter(follows__gt=0)
+        if self.value():
+            if self.value() == 'Да':
+                return queryset.exclude(**self.related_name)
+            return queryset.filter(**self.related_name)
+        return queryset
+
+
+class UserRecipesFilter(BaseUserFilter):
+    title = 'Есть рецепты'
+    parameter_name = 'recipes'
+    related_name = {'recipes': None}
+
+
+class UserFollowsFilter(BaseUserFilter):
+    title = 'Есть подписки'
+    parameter_name = 'follows'
+    related_name = {'follows': None}
+
+
+class UserAuthorsFilter(BaseUserFilter):
+    title = 'Есть подписчики'
+    parameter_name = 'authors'
+    related_name = {'authors': None}
 
 
 class CookingTimeFilter(admin.SimpleListFilter):
@@ -42,10 +52,10 @@ class CookingTimeFilter(admin.SimpleListFilter):
 
     def lookups(self, request, model_admin):
         return [
-            (f'0:{COOKING_TIME_LOWER}', f'Меньше {COOKING_TIME_LOWER} минут'),
-            (f'{COOKING_TIME_LOWER}:{COOKING_TIME_UPPER}',
+            ((0, COOKING_TIME_LOWER), f'Меньше {COOKING_TIME_LOWER} минут'),
+            ((COOKING_TIME_LOWER, COOKING_TIME_UPPER),
              f'Между {COOKING_TIME_LOWER} и {COOKING_TIME_UPPER} минутами'),
-            (f'{COOKING_TIME_UPPER}:{10**10}',
+            ((COOKING_TIME_UPPER, 10**10),
              f'Дольше {COOKING_TIME_UPPER} минут'),
         ]
 
@@ -53,8 +63,7 @@ class CookingTimeFilter(admin.SimpleListFilter):
         value = self.value()
         if not value:
             return queryset
-        lower, upper = value.split(':')
-        return queryset.filter(cooking_time__range=(int(lower), int(upper)))
+        return queryset.filter(cooking_time__range=(eval(value)))
 
 
 @admin.register(User)
@@ -65,7 +74,8 @@ class UserAdmin(admin.ModelAdmin):
     )
     search_fields = ('username', 'email', 'first_name', 'last_name')
     list_filter = (
-        'is_staff', 'is_active', UserFilter
+        'is_staff', 'is_active', UserRecipesFilter,
+        UserFollowsFilter, UserAuthorsFilter,
     )
 
     @admin.display(description='Имя Фамилия')
@@ -141,6 +151,10 @@ class RecipeAdmin(admin.ModelAdmin):
                          recipe.tags.all()))
 
 
+def uses(obj):
+    return obj.recipes.count()
+
+
 @admin.register(Ingredient)
 class IngredientAdmin(admin.ModelAdmin):
     list_display = (
@@ -151,12 +165,7 @@ class IngredientAdmin(admin.ModelAdmin):
 
     @display(description='Использований')
     def in_recipes(self, ingredient):
-        return ingredient.recipes.count()
-
-
-@admin.register(RecipeIngredient)
-class RecipeIngredientAdmin(admin.ModelAdmin):
-    list_display = ('id', 'recipe', 'ingredient', 'amount')
+        return uses(ingredient)
 
 
 @admin.register(Tag)
@@ -166,16 +175,15 @@ class TagAdmin(admin.ModelAdmin):
 
     @display(description='Использований')
     def in_recipes(self, tag):
-        return tag.recipes.count()
+        return uses(tag)
 
 
-@admin.register(Favorite)
-class FavoriteAdmin(admin.ModelAdmin):
+@admin.register(Favorite, ShoppingCart)
+class FavoriteShoppingCartAdmin(admin.ModelAdmin):
     list_display = ('id', 'user', 'recipe')
     search_fields = ('user', 'recipe')
 
 
-@admin.register(ShoppingCart)
-class ShoppingCartAdmin(admin.ModelAdmin):
-    list_display = ('id', 'user', 'recipe')
-    search_fields = ('user', 'recipe')
+@admin.register(RecipeIngredient)
+class RecipeIngredientAdmin(admin.ModelAdmin):
+    list_display = ('id', 'recipe', 'ingredient', 'amount')
