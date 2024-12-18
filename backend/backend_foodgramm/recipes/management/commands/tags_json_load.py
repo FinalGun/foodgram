@@ -24,4 +24,4 @@ class Command(BaseCommand):
                 ignore_conflicts=True
             )
         print(f'Успешно загружены теги из {file_path}. '
-              f'Количеcтво: {Tag.objects.count() - count}')
+              f'Количеcтво новых: {Tag.objects.count() - count}')

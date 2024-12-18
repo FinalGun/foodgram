@@ -22,4 +22,4 @@ class Command(BaseCommand):
                 ignore_conflicts=True
             )
         print(f'Успешно загружены продукты из {file_path}. '
-              f'Количеcтво: {Ingredient.objects.count() - count}')
+              f'Количеcтво новых: {Ingredient.objects.count() - count}')
