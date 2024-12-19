@@ -1,15 +1,11 @@
 from django.contrib import admin
-from django.contrib.auth.models import Group
-from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.contrib.admin import display
+from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
+from django.contrib.auth.models import Group
 from django.utils.safestring import mark_safe
-from rest_framework.authtoken.models import TokenProxy
 
-
-from .models import (
-    Favorite, Ingredient, RecipeIngredient, Recipe,
-    ShoppingCart, Tag, User
-)
+from .models import (Favorite, Ingredient, Recipe, RecipeIngredient,
+                     ShoppingCart, Tag, User)
 
 COOKING_TIME_UPPER = 60
 COOKING_TIME_LOWER = 30
