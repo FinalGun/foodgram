@@ -1,5 +1,6 @@
 from django.contrib import admin
 from django.contrib.auth.models import Group
+from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.contrib.admin import display
 from django.utils.safestring import mark_safe
 from rest_framework.authtoken.models import TokenProxy
@@ -14,18 +15,18 @@ COOKING_TIME_UPPER = 60
 COOKING_TIME_LOWER = 30
 
 admin.site.unregister(Group)
-admin.site.unregister(TokenProxy)
 
 
 class BaseUserFilter(admin.SimpleListFilter):
     pass
 
     def lookups(self, request, model_admin):
-        return [('Нет', 'Нет'), ('Да', 'Да')]
+        return [(False, 'Нет'), (True, 'Да')]
 
     def queryset(self, request, queryset):
-        if self.value():
-            return (queryset.exclude if self.value() == 'Да'
+        value = self.value()
+        if value:
+            return (queryset.exclude if eval(self.value())
                     else queryset.filter)(**self.related_name)
         return queryset
 
@@ -69,7 +70,7 @@ class CookingTimeFilter(admin.SimpleListFilter):
 
 
 @admin.register(User)
-class UserAdmin(admin.ModelAdmin):
+class UserAdmin(BaseUserAdmin):
     list_display = (
         'id', 'username', 'full_name', 'email', 'avatar_display',
         'recipes_count', 'subscriptions_count', 'subscribers_count'
@@ -153,14 +154,14 @@ class RecipeAdmin(admin.ModelAdmin):
                          recipe.tags.all()))
 
 
-class CountBaseAdmin(admin.ModelAdmin):
+class CountBaseAdmin:
     @display(description='Использований')
     def in_recipes(self, obj):
         return obj.recipes.count()
 
 
 @admin.register(Ingredient)
-class IngredientAdmin(CountBaseAdmin):
+class IngredientMixinAdmin(admin.ModelAdmin, CountBaseAdmin):
     list_display = (
         'pk', 'name', 'measurement_unit', 'in_recipes'
     )
@@ -169,7 +170,7 @@ class IngredientAdmin(CountBaseAdmin):
 
 
 @admin.register(Tag)
-class TagAdmin(CountBaseAdmin):
+class TagMixinAdmin(admin.ModelAdmin, CountBaseAdmin):
     list_display = ('id', 'name', 'slug', 'in_recipes')
     search_fields = ('name', 'slug')
 
