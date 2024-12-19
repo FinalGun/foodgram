@@ -2,6 +2,8 @@ from django.contrib import admin
 from django.contrib.auth.models import Group
 from django.contrib.admin import display
 from django.utils.safestring import mark_safe
+from rest_framework.authtoken.models import TokenProxy
+
 
 from .models import (
     Favorite, Ingredient, RecipeIngredient, Recipe,
@@ -12,6 +14,7 @@ COOKING_TIME_UPPER = 60
 COOKING_TIME_LOWER = 30
 
 admin.site.unregister(Group)
+admin.site.unregister(TokenProxy)
 
 
 class BaseUserFilter(admin.SimpleListFilter):
@@ -22,9 +25,8 @@ class BaseUserFilter(admin.SimpleListFilter):
 
     def queryset(self, request, queryset):
         if self.value():
-            if self.value() == 'Да':
-                return queryset.exclude(**self.related_name)
-            return queryset.filter(**self.related_name)
+            return (queryset.exclude if self.value() == 'Да'
+                    else queryset.filter)(**self.related_name)
         return queryset
 
 
@@ -121,7 +123,7 @@ class RecipeAdmin(admin.ModelAdmin):
         'get_ingredients',
         'get_image'
     )
-    list_filter = ('author', 'tags', CookingTimeFilter)
+    list_filter = ('author__username', 'tags', CookingTimeFilter)
     search_fields = ('name', 'get_author', 'tags',)
     inlines = (RecipeIngredientAdmin,)
 
@@ -151,31 +153,25 @@ class RecipeAdmin(admin.ModelAdmin):
                          recipe.tags.all()))
 
 
-def uses(obj):
-    return obj.recipes.count()
+class CountBaseAdmin(admin.ModelAdmin):
+    @display(description='Использований')
+    def in_recipes(self, obj):
+        return obj.recipes.count()
 
 
 @admin.register(Ingredient)
-class IngredientAdmin(admin.ModelAdmin):
+class IngredientAdmin(CountBaseAdmin):
     list_display = (
         'pk', 'name', 'measurement_unit', 'in_recipes'
     )
     search_fields = ('name', 'measurement_unit')
     list_filter = ('measurement_unit',)
 
-    @display(description='Использований')
-    def in_recipes(self, ingredient):
-        return uses(ingredient)
-
 
 @admin.register(Tag)
-class TagAdmin(admin.ModelAdmin):
+class TagAdmin(CountBaseAdmin):
     list_display = ('id', 'name', 'slug', 'in_recipes')
     search_fields = ('name', 'slug')
-
-    @display(description='Использований')
-    def in_recipes(self, tag):
-        return uses(tag)
 
 
 @admin.register(Favorite, ShoppingCart)

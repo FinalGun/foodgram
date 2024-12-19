@@ -71,7 +71,7 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'backend_foodgramm.wsgi.application'
 
-DATABASE_FLAG = os.getenv('DATABASE_FLAG', True)
+DATABASE_FLAG = os.getenv('DATABASE_FLAG', False)
 
 if DATABASE_FLAG:
     DATABASES = {
