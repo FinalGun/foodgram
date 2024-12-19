@@ -20,7 +20,6 @@ SECRET_KEY = os.getenv('SECRET_KEY', get_random_secret_key())
 DEBUG = os.getenv('DEBUG', False)
 
 ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', '').split(' ')
-# ALLOWED_HOSTS = []
 
 DNS = os.getenv('DNS')
 
